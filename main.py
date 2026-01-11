@@ -1,7 +1,8 @@
 import os
 import time
-import requests
 import threading
+import requests
+import yt_dlp
 from flask import Flask
 from pyrogram import Client, filters
 from pyrogram.types import Message
@@ -12,79 +13,78 @@ API_HASH = "6fc0ea1c8dacae05751591adedc177d7"
 BOT_TOKEN = "7832927526:AAHLt_pVQfGBXQ7DNEBu0Q_trgALvvCiUzY"
 OWNER_ID = 6703335929
 B = "ᴅx"
+# Render-e deploy korar por oi URL-ta ekhane boshabe (e.g., https://mybot.onrender.com)
+RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://dark-music-2.onrender.com/")
 
 app = Client("my_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-web_server = Flask(__name__)
+web_app = Flask(__name__)
 
-@web_server.route('/')
+@web_app.route('/')
 def home():
-    return "Bot is Running!"
+    return "ᴅx ʙᴏᴛ ɪꜱ ᴀʟɪᴠᴇ ᴀɴᴅ ʀᴜɴɴɪɴɢ!"
 
-def run_web():
-    web_server.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
-
-# --- BOT LOGIC ---
-
-@app.on_message(filters.command("start") & filters.user(OWNER_ID))
-async def start(client, message):
-    welcome_text = (
-        f"👋 ʜᴇʟʟᴏ ꜱɪʀ, ɪ ᴀᴍ ʏᴏᴜʀ ᴀᴅᴠᴀɴᴄᴇᴅ ᴅᴏᴡɴʟᴏᴀᴅᴇʀ ʙᴏᴛ!\n\n"
-        f"✨ ꜱᴛᴀᴛᴜꜱ: <code>ᴏɴʟɪɴᴇ</code>\n"
-        f"🛡️ ᴘᴏᴡᴇʀᴇᴅ ʙʏ: <b>{B} ꜱʏꜱᴛᴇᴍ</b>\n\n"
-        f"📥 ᴊᴜꜱᴛ ꜱᴇɴᴅ ᴍᴇ ᴀ ꜰᴀᴄᴇʙᴏᴏᴋ ᴏʀ ᴘɪɴᴛᴇʀᴇꜱᴛ ʟɪɴᴋ!"
-    )
-    await message.reply_text(welcome_text)
-
-@app.on_message(filters.text & filters.user(OWNER_ID))
-async def downloader(client, message: Message):
-    url = message.text
-    
-    # URL Validation
-    if "facebook.com" in url or "fb.watch" in url:
-        platform = "ꜰᴀᴄᴇʙᴏᴏᴋ"
-    elif "pinterest.com" in url or "pin.it" in url:
-        platform = "ᴘɪɴᴛᴇʀᴇꜱᴛ"
-    else:
-        return await message.reply_text("❌ <code>Invalid URL! Please send FB or Pinterest link.</code>")
-
-    editable = await message.reply_text(f"🔍 <b>{B} ꜱʏꜱᴛᴇᴍ ɪꜱ ᴀɴᴀʟʏᴢɪɴɢ...</b>")
-    time.sleep(1)
-    await editable.edit(f"📥 <b>{B} ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ ꜰʀᴏᴍ {platform}...</b>")
-
-    try:
-        # Using a public API for downloading (Replace with your preferred API if needed)
-        api_url = f"https://api.vkrdown.com/api/item.php?url={url}"
-        response = requests.get(api_url).json()
-        
-        video_url = response['data']['medias'][0]['url']
-        caption = (
-            f"✅ <b>{B} ᴠɪᴅᴇᴏ ᴅᴏᴡɴʟᴏᴀᴅᴇᴅ!</b>\n\n"
-            f"🌐 ᴘʟᴀᴛꜰᴏʀᴍ: <code>{platform}</code>\n"
-            f"🔗 ᴜʀʟ: <a href='{url}'>ᴄʟɪᴄᴋ ʜᴇʀᴇ</a>\n\n"
-            f"✨ ᴅᴇᴠᴇʟᴏᴘᴇᴅ ʙʏ: <b>{B}</b>"
-        )
-
-        await message.reply_video(video=video_url, caption=caption)
-        await editable.delete()
-
-    except Exception as e:
-        await editable.edit(f"❌ <b>ᴇʀʀᴏʀ:</b> <code>{str(e)}</code>")
-
-# --- KEEP ALIVE SYSTEM ---
+# --- SELF-KEEP-ALIVE SYSTEM ---
 def keep_alive():
+    """Bot nijei nijeke active rakhar jonno protite 10 min por ping korbe"""
     while True:
         try:
-            # Replace 'your-app-name.onrender.com' with your actual Render URL
-            requests.get("https://dark-music-2.onrender.com") 
-        except:
-            pass
-        time.sleep(300) # Pings every 10 minutes
+            # Render URL-e ping pathay
+            requests.get(RENDER_EXTERNAL_URL)
+            print(f"--- {B} ꜱʏꜱᴛᴇᴍ: ᴘɪɴɢ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟ ---")
+        except Exception as e:
+            print(f"Ping Error: {e}")
+        time.sleep(600) # 600 seconds = 10 minutes
+
+def run_web():
+    web_app.run(host="0.0.0.0", port=8080)
+
+# --- DOWNLOAD LOGIC ---
+def download_video(url):
+    ydl_opts = {
+        'format': 'best',
+        'outtmpl': 'video.mp4',
+        'quiet': True,
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+        return ydl.prepare_filename(info)
+
+# --- BOT HANDLERS ---
+@app.on_message(filters.command("start") & filters.user(OWNER_ID))
+async def start(client, message):
+    await message.reply_text(f"🚀 <b>{B} ᴀᴅᴠᴀɴᴄᴇᴅ ᴅᴏᴡɴʟᴏᴀᴅᴇʀ ɪꜱ ʀᴜɴɴɪɴɢ!</b>\n\n✨ ꜱᴛᴀᴛᴜꜱ: <code>ᴀʟɪᴠᴇ & ᴀᴄᴛɪᴠᴇ</code>")
+
+@app.on_message(filters.text & filters.user(OWNER_ID))
+async def handle_url(client, message: Message):
+    url = message.text
+    if not ("facebook.com" in url or "fb.watch" in url or "pinterest.com" in url or "pin.it" in url):
+        return
+
+    status = await message.reply_text(f"🔄 <b>{B} ꜱʏꜱᴛᴇᴍ ɪꜱ ᴘʀᴏᴄᴇꜱꜱɪɴɢ...</b>\n<code>ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ</code>")
+    
+    try:
+        platform = "ᴘɪɴᴛᴇʀᴇꜱᴛ" if "pin" in url else "ꜰᴀᴄᴇʙᴏᴏᴋ"
+        file_path = download_video(url)
+        
+        caption = (
+            f"✅ <b>{B} ᴅᴏᴡɴʟᴏᴀᴅ ᴄᴏᴍᴘʟᴇᴛᴇᴅ</b>\n\n"
+            f"📡 ᴘʟᴀᴛꜰᴏʀᴍ: <code>{platform}</code>\n"
+            f"🏷️ ᴛᴀɢ: #ᴅx_ᴅᴏᴡɴʟᴏᴀᴅ\n"
+            f"🔗 ʟɪɴᴋ: <code>ꜱᴇᴄᴜʀᴇᴅ</code>"
+        )
+
+        await message.reply_video(video=file_path, caption=caption)
+        await status.delete()
+        if os.path.exists(file_path): os.remove(file_path)
+
+    except Exception as e:
+        await status.edit(f"❌ <b>{B} ᴇʀʀᴏʀ:</b> <code>ʟɪɴᴋ ɴᴏᴛ ꜱᴜᴘᴘᴏʀᴛᴇᴅ</code>")
 
 if __name__ == "__main__":
-    # Start Web Server for Render
+    # Web server thread
     threading.Thread(target=run_web, daemon=True).start()
-    # Start Keep Alive
+    # Keep-alive thread
     threading.Thread(target=keep_alive, daemon=True).start()
-    # Start Bot
-    print(f"--- {B} BOT STARTED ---")
+    
+    print(f"--- {B} BOT IS RUNNING ---")
     app.run()
