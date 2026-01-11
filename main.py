@@ -75,10 +75,10 @@ def keep_alive():
     while True:
         try:
             # Replace 'your-app-name.onrender.com' with your actual Render URL
-            requests.get("http://0.0.0.0:8080") 
+            requests.get("https://dark-music-1.onrender.com") 
         except:
             pass
-        time.sleep(600) # Pings every 10 minutes
+        time.sleep(300) # Pings every 10 minutes
 
 if __name__ == "__main__":
     # Start Web Server for Render
