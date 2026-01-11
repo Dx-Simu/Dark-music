@@ -1,4 +1,4 @@
 pyrogram
-tgcalls
-yt-dlp
-ffmpeg-python
+tgcrypto
+requests
+flask
