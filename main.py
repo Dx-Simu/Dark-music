@@ -3,18 +3,20 @@ import time
 import threading
 import requests
 import yt_dlp
+import asyncio
 from flask import Flask
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.errors import FloodWait
 
 # --- [ ᴄᴏɴꜰɪɢᴜʀᴀᴛɪᴏɴ ] ---
 API_ID = 20579940
 API_HASH = "6fc0ea1c8dacae05751591adedc177d7"
 BOT_TOKEN = "7832927526:AAHLt_pVQfGBXQ7DNEBu0Q_trgALvvCiUzY"
-OWNER_IDS = [6703335929] # Ekhane aro ID add korte parbe [ID1, ID2]
+OWNER_IDS = [6703335929] 
 B = "ᴅx"
 
-# Render-e deploy korar por App URL ekhane obossoi dibe
+# Tomar deya Render URL
 URL = "https://dark-music-2.onrender.com" 
 
 bot = Client("dx_advanced_pro", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
@@ -22,15 +24,15 @@ web_app = Flask(__name__)
 
 @web_app.route('/')
 def home():
-    return f"✨ {B} ᴀᴅᴠᴀɴᴄᴇᴅ ꜱʏꜱᴛᴇᴍ ɪꜱ ʀᴜɴɴɪɴɢ!"
+    return f"✨ {B} ꜱʏꜱᴛᴇᴍ ɪꜱ ꜰᴜʟʟʏ ᴀᴄᴛɪᴠᴇ ᴏɴ ʀᴇɴᴅᴇʀ!"
 
 # --- [ ᴀᴜᴛᴏ ᴀᴄᴛɪᴠᴇ / ꜱᴇʟꜰ-ᴘɪɴɢ ꜱʏꜱᴛᴇᴍ ] ---
 def keep_alive():
     while True:
         try:
-            # Bot nijei nijeke ping korbe jeno Render ghumai na jay
+            # Render-e bot-ke active rakhar jonno self-ping
             requests.get(URL, timeout=10)
-            print(f"🛰️ {B} ꜱʏꜱᴛᴇᴍ: ᴘɪɴɢ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟ")
+            print(f"🛰️ {B} ꜱʏꜱᴛᴇᴍ: ꜱᴇʟꜰ-ᴘɪɴɢ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟ...")
         except: 
             pass
         time.sleep(300) # 5 Minutes interval
@@ -65,17 +67,20 @@ def download_video(url):
         ydl.download([url])
     return filename
 
-# --- [ ʙᴏᴛ ʟᴏɢɪᴄ ᴡɪᴛʜ ᴀᴅᴠᴀɴᴄᴇᴅ ᴀɴɪᴍᴀᴛɪᴏɴ ] ---
+# --- [ ʙᴏᴛ ʟᴏɢɪᴄ ᴡɪᴛʜ ᴀɴɪᴍᴀᴛɪᴏɴ ] ---
 
 @bot.on_message(filters.command("start") & filters.user(OWNER_IDS))
 async def start(client, message):
-    await message.reply_text(
+    text = (
         f"👋 ʜᴇʟʟᴏ ᴍᴀꜱᴛᴇʀ,\n\n"
-        f"🤖 ɪ ᴀᴍ ʏᴏᴜʀ <b>{B} ᴀᴅᴠᴀɴᴄᴇᴅ ᴅᴏᴡɴʟᴏᴀᴅᴇʀ</b>\n"
+        f"🤖 ɪ ᴀᴍ ʏᴏᴜʀ <b>{B} ᴀᴅᴠᴀɴᴄᴇᴅ ʙᴏᴛ</b>\n"
         f"💎 ꜱᴛᴀᴛᴜꜱ: <code>ᴘʀᴇᴍɪᴜᴍ ᴀᴄᴛɪᴠᴇ</code>\n"
         f"🛡️ ᴘᴏᴡᴇʀ: <code>ᴏᴡɴᴇʀ ᴀᴄᴄᴇꜱꜱ ᴏɴʟʏ</code>\n\n"
         f"📥 ᴊᴜꜱᴛ ꜱᴇɴᴅ ᴍᴇ ᴀ ʟɪɴᴋ ᴛᴏ ꜱᴛᴀʀᴛ!"
     )
+    await message.reply_text(text, reply_markup=InlineKeyboardMarkup([
+        [InlineKeyboardButton(f"⚙️ ꜱʏꜱᴛᴇᴍ ᴀᴄᴛɪᴠᴇ: {B}", url=URL)]
+    ]))
 
 @bot.on_message(filters.text & filters.user(OWNER_IDS))
 async def handle_url(client, message: Message):
@@ -83,7 +88,7 @@ async def handle_url(client, message: Message):
     if not any(x in url for x in ["facebook.com", "fb.watch", "pin.it", "pinterest.com"]):
         return
 
-    # --- [ ᴀɴɪᴍᴀᴛɪᴏɴ ꜱᴇǫᴜᴇɴᴄᴇ ] ---
+    # Animation sequence
     status = await message.reply_text(f"🔍 <code>{B} ꜱʏꜱᴛᴇᴍ: ɪᴅᴇɴᴛɪꜰʏɪɴɢ ᴜʀʟ...</code>")
     time.sleep(1)
     await status.edit(f"⚙️ <code>{B} ꜱʏꜱᴛᴇᴍ: ᴇxᴛʀᴀᴄᴛɪɴɢ ᴍᴇᴛᴀᴅᴀᴛᴀ...</code>")
@@ -95,7 +100,6 @@ async def handle_url(client, message: Message):
         file_path = download_video(url)
         platform = "ᴘɪɴᴛᴇʀᴇꜱᴛ" if "pin" in url else "ꜰᴀᴄᴇʙᴏᴏᴋ"
         
-        # --- [ ᴀᴅᴠᴀɴᴄᴇᴅ ᴄᴀᴘᴛɪᴏɴ ] ---
         caption = (
             f"✅ <b>{B} ᴅᴏᴡɴʟᴏᴀᴅ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟ</b>\n\n"
             f"📝 <b>ᴛɪᴛʟᴇ:</b> <code>{data['title'][:50]}...</code>\n"
@@ -118,19 +122,26 @@ async def handle_url(client, message: Message):
             os.remove(file_path)
 
     except Exception as e:
-        await status.edit(f"❌ <b>{B} ᴇʀʀᴏʀ:</b> <code>ꜰᴀɪʟᴇᴅ ᴛᴏ ᴘʀᴏᴄᴇꜱꜱ ʟɪɴᴋ</code>")
+        await status.edit(f"❌ <b>{B} ᴇʀʀᴏʀ:</b> <code>ʟɪɴᴋ ɴᴏᴛ ꜱᴜᴘᴘᴏʀᴛᴇᴅ ᴏʀ ᴇxᴘɪʀᴇᴅ</code>")
         print(f"Error: {e}")
 
 @bot.on_callback_query(filters.regex("del"))
 async def delete_msg(client, callback_query):
     await callback_query.message.delete()
 
-# --- [ ᴍᴀɪɴ ᴇxᴇᴄᴜᴛɪᴏɴ ] ---
+# --- [ ᴍᴀɪɴ ᴇxᴇᴄᴜᴛɪᴏɴ ᴡɪᴛʜ ꜰʟᴏᴏᴅᴡᴀɪᴛ ʜᴀɴᴅʟᴇʀ ] ---
 if __name__ == "__main__":
-    # Web server thread
     threading.Thread(target=run_web, daemon=True).start()
-    # Keep-alive thread
     threading.Thread(target=keep_alive, daemon=True).start()
     
-    print(f"--- {B} BOT IS RUNNING ON RENDER ---")
-    bot.run()
+    while True:
+        try:
+            print(f"--- {B} ʙᴏᴛ ɪꜱ ꜱᴛᴀʀᴛɪɴɢ... ---")
+            bot.run()
+            break # Normal exit
+        except FloodWait as e:
+            print(f"⚠️ ᴛᴇʟᴇɢʀᴀᴍ ꜰʟᴏᴏᴅᴡᴀɪᴛ: {e.value} ꜱᴇᴄᴏɴᴅꜱ... ᴡᴀɪᴛɪɴɢ.")
+            time.sleep(e.value + 1) # Automatically waits and retries
+        except Exception as e:
+            print(f"❌ ꜰᴀᴛᴀʟ ᴇʀʀᴏʀ: {e}")
+            time.sleep(10)
