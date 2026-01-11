@@ -1,135 +1,90 @@
 import os
-import asyncio
+import time
+import requests
+import threading
+from flask import Flask
 from pyrogram import Client, filters
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from pytgcalls import PyTgCalls
-from pytgcalls.types import AudioPiped
-from yt_dlp import YoutubeDL
+from pyrogram.types import Message
 
 # --- CONFIGURATION ---
-API_ID = 20579940 
+API_ID = 20579940
 API_HASH = "6fc0ea1c8dacae05751591adedc177d7"
-BOT_TOKEN = "7853734473:AAHdGjbtPFWD6wFlyu8KRWteRg_961WGRJk"
+BOT_TOKEN = "7832927526:AAHLt_pVQfGBXQ7DNEBu0Q_trgALvvCiUzY"
+OWNER_ID = 6703335929
+B = "ᴅx"
 
-bot = Client("DX_MusicBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-call_py = PyTgCalls(bot)
+app = Client("my_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+web_server = Flask(__name__)
 
-# --- 1. AUTO DELETE SERVICE MESSAGES ---
-@bot.on_message(filters.service)
-async def delete_service(_, message: Message):
-    try:
-        await message.delete()
-    except:
-        pass
+@web_server.route('/')
+def home():
+    return "Bot is Running!"
 
-# --- ADMIN CHECKER ---
-async def is_admin(chat_id, user_id):
-    member = await bot.get_chat_member(chat_id, user_id)
-    return member.status in ("administrator", "creator")
+def run_web():
+    web_server.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
 
-# --- 2. ADVANCE PLAY COMMAND (HTML STYLED) ---
-@bot.on_message(filters.command("play") & filters.group)
-async def play_music(client, message: Message):
-    if not await is_admin(message.chat.id, message.from_user.id):
-        return await message.reply("<b>❌ ACCESS DENIED</b>\n<code>Only Admins can use this command.</code>")
+# --- BOT LOGIC ---
 
-    query = " ".join(message.command[1:])
-    if not query:
-        return await message.reply("<b>📑 USAGE:</b>\n<code>/play [Song Name]</code>")
+@app.on_message(filters.command("start") & filters.user(OWNER_ID))
+async def start(client, message):
+    welcome_text = (
+        f"👋 ʜᴇʟʟᴏ ꜱɪʀ, ɪ ᴀᴍ ʏᴏᴜʀ ᴀᴅᴠᴀɴᴄᴇᴅ ᴅᴏᴡɴʟᴏᴀᴅᴇʀ ʙᴏᴛ!\n\n"
+        f"✨ ꜱᴛᴀᴛᴜꜱ: <code>ᴏɴʟɪɴᴇ</code>\n"
+        f"🛡️ ᴘᴏᴡᴇʀᴇᴅ ʙʏ: <b>{B} ꜱʏꜱᴛᴇᴍ</b>\n\n"
+        f"📥 ᴊᴜꜱᴛ ꜱᴇɴᴅ ᴍᴇ ᴀ ꜰᴀᴄᴇʙᴏᴏᴋ ᴏʀ ᴘɪɴᴛᴇʀᴇꜱᴛ ʟɪɴᴋ!"
+    )
+    await message.reply_text(welcome_text)
 
-    m = await message.reply("<b>🔍 SEARCHING...</b>\n<code>Please wait while we fetch the audio.</code>")
+@app.on_message(filters.text & filters.user(OWNER_ID))
+async def downloader(client, message: Message):
+    url = message.text
     
-    ydl_opts = {"format": "bestaudio/best", "quiet": True}
+    # URL Validation
+    if "facebook.com" in url or "fb.watch" in url:
+        platform = "ꜰᴀᴄᴇʙᴏᴏᴋ"
+    elif "pinterest.com" in url or "pin.it" in url:
+        platform = "ᴘɪɴᴛᴇʀᴇꜱᴛ"
+    else:
+        return await message.reply_text("❌ <code>Invalid URL! Please send FB or Pinterest link.</code>")
+
+    editable = await message.reply_text(f"🔍 <b>{B} ꜱʏꜱᴛᴇᴍ ɪꜱ ᴀɴᴀʟʏᴢɪɴɢ...</b>")
+    time.sleep(1)
+    await editable.edit(f"📥 <b>{B} ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ ꜰʀᴏᴍ {platform}...</b>")
+
     try:
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"ytsearch:{query}", download=False)['entries'][0]
-            url = info['url']
-            title = info['title'][:30]
-            duration = info.get('duration', 0)
-            thumb = info.get('thumbnail')
-
-        await call_py.join_group_call(message.chat.id, AudioPiped(url))
-
-        # Premium Buttons
-        buttons = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("⏸️ Pᴀᴜsᴇ", callback_data="pause"),
-                InlineKeyboardButton("▶️ Rᴇsᴜᴍᴇ", callback_data="resume"),
-                InlineKeyboardButton("⏹️ Sᴛᴏᴘ", callback_data="stop")
-            ],
-            [InlineKeyboardButton("👑 Dᴇᴠᴇʟᴏᴘᴇʀ: DX-CODEX 👑", url="https://t.me/dx_codex")]
-        ])
-
-        # HTML Formatted Design
-        caption = (
-            "<b>🎵 <u>ɴᴏᴡ ᴘʟᴀʏɪɴɢ ᴏɴ ᴠᴏɪᴄᴇᴄʜᴀᴛ</u></b>\n\n"
-            f"<blockquote><b>📌 ᴛɪᴛʟᴇ:</b> <code>{title}</code>\n"
-            f"<b>🕒 ᴅᴜʀᴀᴛɪᴏɴ:</b> <code>00:00 / {duration // 60}:{duration % 60:02d}</code>\n"
-            f"<b>👤 ʀᴇǫᴜᴇsᴛᴇʀ:</b> {message.from_user.mention}</blockquote>\n\n"
-            f"<b>00:00 ───●────────── {duration // 60}:{duration % 60:02d}</b>\n"
-            "<b>       ⇆ㅤ◁ㅤ ❚❚ㅤ ▷ㅤ↻</b>"
-        )
+        # Using a public API for downloading (Replace with your preferred API if needed)
+        api_url = f"https://api.vkrdown.com/api/item.php?url={url}"
+        response = requests.get(api_url).json()
         
-        await m.delete()
-        await message.reply_photo(photo=thumb, caption=caption, reply_markup=buttons)
+        video_url = response['data']['medias'][0]['url']
+        caption = (
+            f"✅ <b>{B} ᴠɪᴅᴇᴏ ᴅᴏᴡɴʟᴏᴀᴅᴇᴅ!</b>\n\n"
+            f"🌐 ᴘʟᴀᴛꜰᴏʀᴍ: <code>{platform}</code>\n"
+            f"🔗 ᴜʀʟ: <a href='{url}'>ᴄʟɪᴄᴋ ʜᴇʀᴇ</a>\n\n"
+            f"✨ ᴅᴇᴠᴇʟᴏᴘᴇᴅ ʙʏ: <b>{B}</b>"
+        )
+
+        await message.reply_video(video=video_url, caption=caption)
+        await editable.delete()
 
     except Exception as e:
-        await m.edit(f"<b>❌ ERROR DETECTED</b>\n<code>{e}</code>")
+        await editable.edit(f"❌ <b>ᴇʀʀᴏʀ:</b> <code>{str(e)}</code>")
 
-# --- 3. TAG ALL USERS ---
-@bot.on_message(filters.command("tagall") & filters.group)
-async def tag_all_users(client, message: Message):
-    if not await is_admin(message.chat.id, message.from_user.id):
-        return
-        
-    shout = await message.reply("<b>📣 INITIATING...</b>\n<code>Mentioning all members.</code>")
-    members = []
-    async for member in client.get_chat_members(message.chat.id):
-        if not member.user.is_bot:
-            members.append(member.user.mention)
-    
-    await shout.delete()
-    for i in range(0, len(members), 5):
-        await message.reply(f"<b>🔔 ᴀᴛᴛᴇɴᴛɪᴏɴ ᴇᴠᴇʀʏᴏɴᴇ!</b>\n\n<blockquote>" + ", ".join(members[i:i+5]) + "</blockquote>")
-        await asyncio.sleep(2)
+# --- KEEP ALIVE SYSTEM ---
+def keep_alive():
+    while True:
+        try:
+            # Replace 'your-app-name.onrender.com' with your actual Render URL
+            requests.get("http://0.0.0.0:8080") 
+        except:
+            pass
+        time.sleep(600) # Pings every 10 minutes
 
-# --- 4. SONG DOWNLOADER ---
-@bot.on_message(filters.command("song") & filters.group)
-async def song_downloader(client, message: Message):
-    if not await is_admin(message.chat.id, message.from_user.id):
-        return
-        
-    query = " ".join(message.command[1:])
-    if not query:
-        return await message.reply("<b>🎵 INPUT ERROR:</b>\n<code>Please provide a song name.</code>")
-
-    m = await message.reply("<b>📥 DOWNLOADING...</b>\n<code>Fetching file from server.</code>")
-    # Simulation: Add your download logic here
-    await m.edit("<b>✅ DOWNLOAD COMPLETE</b>\n<code>Song has been uploaded to the group.</code>")
-
-# --- 5. CONTROL CALLBACKS ---
-@bot.on_callback_query()
-async def controls(_, query: CallbackQuery):
-    if not await is_admin(query.message.chat.id, query.from_user.id):
-        return await query.answer("Admin Permission Required!", show_alert=True)
-
-    if query.data == "pause":
-        await call_py.pause_stream(query.message.chat.id)
-        await query.answer("Streaming Paused")
-    elif query.data == "resume":
-        await call_py.resume_stream(query.message.chat.id)
-        await query.answer("Streaming Resumed")
-    elif query.data == "stop":
-        await call_py.leave_group_call(query.message.chat.id)
-        await query.message.delete()
-        await query.answer("Streaming Ended")
-
-# --- STARTUP ---
-async def start_bot():
-    await bot.start()
-    await call_py.start()
-    print("🚀 [DX-CODEX] BOT IS ONLINE")
-    await asyncio.Idle()
-
-loop = asyncio.get_event_loop()
-loop.run_until_complete(start_bot())
+if __name__ == "__main__":
+    # Start Web Server for Render
+    threading.Thread(target=run_web, daemon=True).start()
+    # Start Keep Alive
+    threading.Thread(target=keep_alive, daemon=True).start()
+    # Start Bot
+    print(f"--- {B} BOT STARTED ---")
+    app.run()
