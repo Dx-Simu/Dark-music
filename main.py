@@ -13,7 +13,7 @@ API_HASH = "6fc0ea1c8dacae05751591adedc177d7"
 BOT_TOKEN = "7832927526:AAHLt_pVQfGBXQ7DNEBu0Q_trgALvvCiUzY"
 OWNER_IDS = [6703335929] # Multiple ID ekhane add kora jabe
 B = "ᴅx"
-URL = "https://your-app-name.onrender.com" # Tomar Render URL ekhane boshao
+URL = "https://dark-music-2.onrender.com" # Tomar Render URL ekhane boshao
 
 bot = Client("dx_advanced_pro", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 web_app = Flask(__name__)
